@@ -21,9 +21,7 @@ anaconda_projects/
 .streamlit/*
 app/.streamlit/
 
-# chainlit
-.chainlit
-chainlit.md
+
 
 # other
 fullcodigo.txt
@@ -33,17 +31,14 @@ organização.txt
 *.zip
 *.pdf
 *.bin
-Agente_Dados_Fiscais/sandbox/
-notebooks/documentosvectorstore/
 
 # Bancos de dados locais e Vector Stores
 *.sqlite3
 chroma.sqlite3
-Agente_Dados_Fiscais/sandbox/
-notebooks/documentosvectorstore/
+sandbox/
+data
 
 # Ambientes virtuais e caches do Python (se ainda não estiverem)
 .venv/
-langchain_env/
 __pycache__/
 *.pyc
