@@ -1,0 +1,49 @@
+# PyCharm
+.idea/
+*.iml
+.env
+# Python / Jupyter / Cache
+__pycache__/
+**/__pycache__/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+*.pyc
+
+# Documentos temporários
+.virtual_documents/
+**/.virtual_documents/
+# Ambientes / Anaconda
+anaconda_projects/
+**/anaconda_projects/
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/*
+app/.streamlit/
+
+# chainlit
+.chainlit
+chainlit.md
+
+# other
+fullcodigo.txt
+organização.txt
+
+*.csv
+*.zip
+*.pdf
+*.bin
+Agente_Dados_Fiscais/sandbox/
+notebooks/documentosvectorstore/
+
+# Bancos de dados locais e Vector Stores
+*.sqlite3
+chroma.sqlite3
+Agente_Dados_Fiscais/sandbox/
+notebooks/documentosvectorstore/
+
+# Ambientes virtuais e caches do Python (se ainda não estiverem)
+.venv/
+langchain_env/
+__pycache__/
+*.pyc
