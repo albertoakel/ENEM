@@ -36,7 +36,7 @@ organização.txt
 *.sqlite3
 chroma.sqlite3
 sandbox/
-data
+data/
 
 # Ambientes virtuais e caches do Python (se ainda não estiverem)
 .venv/
