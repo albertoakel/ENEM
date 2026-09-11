@@ -1,0 +1,1 @@
+V#erificar linhas, colunas, nulos, duplicações e resultados

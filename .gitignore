@@ -23,7 +23,7 @@ app/.streamlit/
 
 
 
-# other
+# Dados e extensões
 fullcodigo.txt
 organização.txt
 
@@ -31,6 +31,7 @@ organização.txt
 *.zip
 *.pdf
 *.bin
+*.parquet
 
 # Bancos de dados locais e Vector Stores
 *.sqlite3
