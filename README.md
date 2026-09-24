@@ -8,23 +8,29 @@ O recorte atualmente implementado considera o estado do Pará (`PA`). A estrutur
 
 ## Objetivos
 
-- organizar os microdados anuais do ENEM em uma estrutura reproduzível;
-- preservar os arquivos originais sem modificações;
-- selecionar somente as variáveis definidas no catálogo do projeto;
-- excluir questionários e arquivos auxiliares, como `ITENS_PROVA`;
-- filtrar os registros por Unidade da Federação;
-- harmonizar os tipos das variáveis entre as edições;
-- armazenar os resultados em Parquet para facilitar consultas e análises;
-- validar duplicações, ano, UF, identificadores e integridade dos arquivos;
-- preparar os dados para a futura camada Gold.
+* organizar os microdados anuais do ENEM em uma estrutura reproduzível;
+* preservar os arquivos originais sem modificações;
+* selecionar somente as variáveis definidas no catálogo do projeto;
+* excluir questionários e arquivos auxiliares, como `ITENS_PROVA`;
+* filtrar os registros por Unidade da Federação;
+* harmonizar os tipos das variáveis entre as edições;
+* armazenar os resultados em Parquet para facilitar consultas e análises;
+* validar duplicações, ano, UF, identificadores e integridade dos arquivos;
+* construir uma camada Gold territorialmente coerente e historicamente rastreável;
+* construir uma camada Analítica com indicadores agregados por município e ano;
+* preservar explicitamente as diferenças históricas de disponibilidade das variáveis;
+* preparar os dados para análises estatísticas, espaciais, séries temporais, dashboards e modelos de aprendizado de máquina.
 
 ## Arquitetura
 
 ```mermaid
 flowchart LR
-    A[Bronze<br/>ZIPs originais] --> B[Staging<br/>CSVs temporários]
-    B --> C[Silver<br/>Parquets validados]
-    C --> D[Gold<br/>Em desenvolvimento]
+    A[Bronze<br/>ZIPs originais]
+    --> B[Staging<br/>CSVs temporários]
+    --> C[Silver<br/>Dados selecionados e validados]
+    --> D[Gold<br/>Dados canônicos e territorialmente coerentes]
+    --> E[Analytic<br/>Indicadores e tabelas analíticas]
+    --> F[Consumo<br/>Dashboards, relatórios, análises e modelos]
 ```
 
 ### Bronze
@@ -33,25 +39,56 @@ Contém os 28 arquivos ZIP originais, correspondentes às edições de 1998 a 20
 
 ### Staging
 
-Área temporária utilizada para extrair apenas os CSVs necessários ao processamento. Os arquivos são removidos somente depois que a Silver correspondente existe e foi validada.
+Área temporária utilizada para extrair os CSVs necessários ao processamento. Os arquivos são removidos somente depois que a Silver correspondente existe e foi validada.
 
 ### Silver
 
 Contém os dados selecionados, filtrados para a UF desejada, tipados e armazenados em Parquet.
 
+A Silver preserva a estrutura das fontes processadas e mantém separadas as bases `PARTICIPANTES` e `RESULTADOS` de 2024 e 2025.
+
 ### Gold
 
-Camada analítica destinada a indicadores, agregações históricas e conjuntos comparáveis entre os anos. Esta etapa está em desenvolvimento.
+A Gold é a camada de dados canônicos e historicamente harmonizados do projeto.
+
+Ela mantém os registros em nível físico, mas estabelece um contrato comum de variáveis e uma referência territorial explícita para cada período.
+
+A referência territorial utilizada é:
+
+* 1998–2000: município de residência;
+* 2001–2007: município da escola;
+* 2008–2025: município da prova.
+
+As edições de 2024 e 2025 permanecem com `PARTICIPANTES` e `RESULTADOS` como fontes distintas. Não é realizado relacionamento individual entre essas bases. A integração ocorre no nível municipal.
+
+A Gold é destinada à consolidação e disponibilização de dados coerentes para a camada Analítica. Ela não representa ainda os indicadores finais de análise.
+
+### Analytic
+
+A camada Analítica transforma os dados Gold em produtos agregados destinados ao consumo analítico.
+
+A granularidade principal é município × ano, com exceção dos produtos cuja unidade exige uma dimensão adicional, como a distribuição por faixa etária.
+
+Atualmente são produzidos:
+
+* perfil demográfico;
+* distribuição por faixa etária;
+* presença e ausência;
+* desempenho em redação;
+* desempenho objetivo de 1998–2008;
+* desempenho por áreas de 2009–2025;
+* perfil por dependência administrativa da escola.
+
+A camada Analítica preserva as diferenças históricas de disponibilidade das variáveis. Ausência de informação não é convertida automaticamente em zero.
 
 ## Estrutura do projeto
 
 ```text
+```text
 ENEM/
 ├── data/
 │   ├── bronze/
-│   │   ├── microdados_enem_1998.zip
-│   │   ├── ...
-│   │   └── microdados_enem_2025.zip
+│   │   └── microdados_enem_AAAA.zip
 │   ├── staging/
 │   │   └── ano_AAAA/
 │   ├── silver/
@@ -59,30 +96,56 @@ ENEM/
 │   │   ├── participantes/
 │   │   └── resultados/
 │   ├── gold/
+│   │   └── uf=PA/
+│   │       ├── ano=AAAA/
+│   │       │   └── base=YYYY/
+│   │       │       └── dados.parquet
+│   │       └── ...
+│   ├── analytic/
+│   │   └── uf=PA/
+│   │       ├── demografia_municipal.parquet
+│   │       ├── faixa_etaria_municipal.parquet
+│   │       ├── presenca_municipal.parquet
+│   │       ├── desempenho_redacao_municipal.parquet
+│   │       ├── desempenho_objetiva_municipal.parquet
+│   │       ├── desempenho_areas_municipal.parquet
+│   │       └── escola_municipal.parquet
 │   └── metadata/
-│       └── dicionarios/
-│           └── variaveis_enem_por_ano.csv
+│       ├── dicionarios/
+│       │   └── variaveis_enem_por_ano.csv
+│       ├── manifesto_silver_PA.csv
+│       ├── manifesto_gold_PA.csv
+│       └── manifesto_analytic_PA.csv
 ├── notebook/
 │   ├── 00_download_data_ENEM.ipynb
 │   ├── 01_inspecao_bronze.ipynb
-│   ├── 02_mapeamento_arquivos.ipynb
+│   ├── 02_mapeamento_arquivos_bronze.ipynb
 │   ├── 03_extracao_staging.ipynb
 │   ├── 04_leitura_duckdb.ipynb
+│   ├── 04_geracao_catalogo_variaveis.ipynb
 │   ├── 05_validacao_modulos.ipynb
-│   └── 06_pipeline_bronze_silver.ipynb
+│   ├── 06_pipeline_bronze_silver.ipynb
+│   ├── 07_auditoria_camada_silver.ipynb
+│   ├── 08_modelagem_gold_municipio_ano.ipynb
+│   ├── 09_auditoria_gold.ipynb
+│   └── 10_analitico.ipynb
 ├── src/
 │   └── enem_pipeline/
 │       ├── __init__.py
 │       ├── auditoria.py
 │       ├── catalogo.py
+│       ├── cli.py
 │       ├── config.py
 │       ├── extracao.py
+│       ├── geracao_catalogo.py
 │       ├── gravacao.py
 │       ├── leitura.py
 │       ├── limpeza.py
 │       ├── processamento.py
 │       ├── processamento_separado.py
 │       └── transformacao.py
+├── src/
+│   └── testes/
 └── README.md
 ```
 
@@ -182,6 +245,38 @@ Também foram configuradas codificações específicas para os arquivos que não
 
 ## Validações
 
+A arquitetura atual possui validações específicas para cada camada.
+
+### Silver
+
+São verificadas a existência dos arquivos, cobertura das edições, catálogo de variáveis, identificadores, duplicações, UF, ano, tamanho e integridade dos Parquets.
+
+### Gold
+
+A auditoria da Gold verifica:
+
+* integridade do manifesto;
+* existência dos 30 arquivos Gold;
+* cobertura das 28 edições;
+* schema canônico de 29 colunas;
+* cardinalidade Silver → Gold;
+* referência territorial por período;
+* integridade territorial dos registros;
+* compatibilidade municipal entre `PARTICIPANTES` e `RESULTADOS` em 2024–2025;
+* perfil histórico de preenchimento das variáveis.
+
+### Analytic
+
+A auditoria da camada Analítica verifica:
+
+* existência dos 7 produtos;
+* correspondência entre manifesto e arquivos físicos;
+* número de linhas e colunas;
+* período efetivamente representado;
+* granularidade;
+* unicidade das chaves analíticas;
+* consistência básica dos indicadores e percentuais.
+
 O pipeline verifica:
 
 - existência dos ZIPs;
@@ -208,6 +303,25 @@ Versão reorganizada e objetiva dos testes dos módulos. Valida configuração, 
 ### `06_pipeline_bronze_silver.ipynb`
 
 Notebook operacional responsável pelo processamento em lotes, limpeza do Staging, auditoria final e geração do manifesto da Silver.
+
+### `07_auditoria_camada_silver.ipynb`
+
+Auditoria consolidada da camada Silver.
+
+### `08_modelagem_gold_municipio_ano.ipynb`
+
+Constrói a camada Gold a partir dos Parquets Silver.  Define o 
+contrato canônico de variáveis, a referência territorial histórica e a estrutura física da Gold. As fontes de 2024 e 2025 permanecem separadas entre `PARTICIPANTES` e `RESULTADOS`.
+
+### `09_auditoria_gold.ipynb`
+
+Realiza a auditoria independente da camada Gold, verificando schema, cardinalidade, território,
+compatibilidade municipal e preenchimento histórico.
+
+### `10_analitico.ipynb`
+
+Constrói os produtos da camada Analítica a partir da Gold, grava os Parquets analíticos, gera 
+o manifesto da camada e executa as auditorias estrutural, temporal, de granularidade e de conteúdo.
 
 ## Execução
 
@@ -258,53 +372,58 @@ CONTINUAR_EM_ERRO = False
 Em uma nova execução, o pipeline pode reutilizar e validar arquivos Silver já existentes.
 
 ## Resultados alcançados
-
 O processamento Bronze → Silver foi concluído para todas as edições previstas.
 
-| Indicador | Resultado |
-|---|---:|
-| Edições processadas | 28 |
-| Parquets do layout único, 1998–2023 | 26 |
-| Parquets de participantes, 2024–2025 | 2 |
-| Parquets de resultados, 2024–2025 | 2 |
-| Total esperado na Silver | 30 |
-| Registros do layout único, 1998–2023 | 4.766.831 |
-| Participantes, 2024–2025 | 537.389 |
-| Resultados, 2024–2025 | 537.389 |
-| Espaço liberado no Staging | aproximadamente 57,96 GiB |
-| Erros de processamento registrados | 0 |
-| Erros de limpeza registrados | 0 |
+A camada Silver possui 30 fontes para 28 edições, incluindo as bases separadas de `PARTICIPANTES` e `RESULTADOS` de 2024 e 2025.
 
-Para 2024 foram selecionados 248.061 registros em cada base. Para 2025 foram selecionados 289.328 registros em cada base.
+A camada Gold foi materializada e auditada para as mesmas 30 fontes, preservando a cardinalidade dos registros e estabelecendo um schema canônico de 29 colunas.
+
+A camada Analítica foi materializada com 7 produtos:
+
+| Produto                         | Período   | Granularidade                  |
+| ------------------------------- | --------- | ------------------------------ |
+| `demografia_municipal`          | 1998–2025 | município × ano                |
+| `faixa_etaria_municipal`        | 1998–2025 | município × ano × faixa etária |
+| `presenca_municipal`            | 1998–2025 | município × ano                |
+| `desempenho_redacao_municipal`  | 1998–2025 | município × ano                |
+| `desempenho_objetiva_municipal` | 1998–2008 | município × ano                |
+| `desempenho_areas_municipal`    | 2009–2025 | município × ano                |
+| `escola_municipal`              | 1998–2025 | município × ano                |
+
+As três camadas Silver, Gold e Analytic possuem manifestos próprios, permitindo rastrear os artefatos físicos produzidos em cada etapa.
 
 ## Estado atual do projeto
 
-| Componente | Situação |
-|---|---|
-| Inventário dos 28 ZIPs | Concluído |
-| Catálogo de variáveis por ano | Concluído e auditado |
-| Extração seletiva dos CSVs | Concluída |
-| Processamento do layout único | Concluído para 1998–2023 |
-| Processamento separado | Concluído para 2024–2025 |
-| Gravação dos 30 Parquets | Concluída |
-| Limpeza segura do Staging | Executada durante os lotes |
-| Auditoria consolidada da Silver | Próxima etapa |
-| Manifesto da Silver | Em desenvolvimento |
-| Testes automatizados | Em desenvolvimento |
-| Camada Gold | Em desenvolvimento |
-| Indicadores e análises históricas | Planejados |
+| Componente                               | Situação                 |
+| ---------------------------------------- | ------------------------ |
+| Inventário dos 28 ZIPs                   | ✅ Concluído                |
+| Catálogo de variáveis por ano            | ✅ Concluído e auditado     |
+| Extração seletiva dos CSVs               | ✅ Concluída                |
+| Processamento do layout único            | ✅ Concluído para 1998–2023 |
+| Processamento separado                   | ✅ Concluído para 2024–2025 |
+| Gravação dos 30 Parquets Silver          | ✅ Concluída                |
+| Auditoria da Silver                      | ✅ Concluída                |
+| Manifesto da Silver                      | ✅ Concluído                |
+| Camada Gold                              | ✅ Concluída                |
+| Auditoria da Gold                        | ✅ Concluída                |
+| Manifesto da Gold                        | ✅ Concluído                |
+| Camada Analítica                         | ✅ Concluída                |
+| Auditoria da Analytic                    | ✅ Concluída                |
+| Manifesto da Analytic                    | ✅ Concluído                |
+| Dashboard e produtos de consumo          | Próxima etapa            |
+| Modelagem estatística e Machine Learning | Etapa posterior          |
+
+
 
 ## Próximas etapas — em desenvolvimento
 
-1. Executar a auditoria final reutilizando os 30 Parquets existentes.
-2. Confirmar as 28 edições e verificar que não restaram CSVs no Staging.
-3. Gerar `data/metadata/manifesto_silver_PA.csv`, com uma linha por Parquet.
-4. Converter as principais validações dos notebooks em testes automatizados.
-5. Consolidar as dependências em um arquivo `requirements.txt` ou arquivo equivalente do ambiente.
-6. Documentar a execução por linha de comando.
-7. Modelar a camada Gold com variáveis comparáveis ao longo do tempo.
-8. Criar indicadores agregados por ano, município e UF.
-9. Manter participantes e resultados de 2024–2025 separados nas análises individuais.
+1. Estruturar a camada de consumo a partir dos produtos Analíticos.
+2. Criar consultas analíticas reutilizáveis com DuckDB.
+3. Desenvolver séries temporais e análises municipais.
+4. Desenvolver produtos espaciais e dashboards.
+5. Definir conjuntos analíticos específicos para modelagem estatística e Machine Learning.
+6. Garantir que modelos respeitem as mudanças históricas de definição e disponibilidade das variáveis.
+7. Evoluir a automação das etapas Gold e Analytic para execução reprodutível fora do notebook.
 
 ## Observações
 
