@@ -427,9 +427,11 @@ As três camadas Silver, Gold e Analytic possuem manifestos próprios, permitind
 
 ## Observações
 
-- Os arquivos auxiliares e questionários não fazem parte da Silver.
-- Os dados originais devem permanecer preservados na Bronze.
-- A limpeza automática atua somente sobre os arquivos principais do Staging.
-- O pipeline não deve relacionar `NU_INSCRICAO` e `NU_SEQUENCIAL` como se fossem a mesma chave.
-- Os dados do ENEM pertencem ao Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira (Inep).
-
+* Os arquivos auxiliares e questionários não fazem parte da Silver.
+* Os dados originais devem permanecer preservados na Bronze.
+* A limpeza automática atua somente sobre os arquivos principais do Staging.
+* `NU_INSCRICAO` e `NU_SEQUENCIAL` não são tratados como uma chave individual comum entre `PARTICIPANTES` e `RESULTADOS`.
+* A integração entre essas bases em 2024–2025 ocorre no nível municipal.
+* A ausência histórica de uma variável é preservada como ausência de informação e não como zero.
+* As diferentes gerações de variáveis de desempenho não são tratadas como automaticamente comparáveis ao longo de toda a série.
+* Os dados do ENEM pertencem ao Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira (Inep).
