@@ -1,9 +1,7 @@
 # Pipeline dos Microdados do ENEM — 1998 a 2025
 
 Pipeline de dados para organizar, selecionar, transformar e armazenar os Microdados do Exame Nacional do Ensino Médio (ENEM) entre 1998 e 2025.
-
 O projeto utiliza uma arquitetura inspirada no padrão Medalhão. Os arquivos originais são preservados na camada Bronze, os CSVs são extraídos temporariamente para o Staging e os registros selecionados são gravados em formato Parquet na camada Silver.
-
 O recorte atualmente implementado considera o estado do Pará (`PA`). A estrutura permite utilizar outra Unidade da Federação por meio dos parâmetros do pipeline.
 
 ## Objetivos
